@@ -28,8 +28,6 @@
     <button onclick="getLocation()">Share My Location</button>
     <p id="location">Your location will appear here.</p>
     
-    <button onclick="makeCall()">Make a Call</button>
-
     <p id="speechResult">Speech will appear here...</p>
     <button onclick="startSpeechRecognition()">Start Speech Recognition</button>
 
@@ -70,14 +68,10 @@
 
         // Function to make a phone call using the `tel:` URI
         function makeCall() {
-            if(speechResult == "bachao bachao"){
-                var phoneNumber = "+917872286993";  // Replace with the phone number you want to call
-                window.location.href = "tel:" + phoneNumber;
-            }
-            var phoneNumber = "+917872286993";  // Replace with the phone number you want to call
+            var phoneNumber = "+918967676009";  // Replace with the phone number you want to call
             window.location.href = "tel:" + phoneNumber;  // This opens the dialer with the phone number
         }
-        
+
         // Function to start speech recognition
         function startSpeechRecognition() {
             const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -88,11 +82,17 @@
 
             recognition.start();  // Start listening for speech
 
-            // When speech is recognized, display the result
+            // When speech is recognized, check if it's the word "call"
             recognition.onresult = function(event) {
-                const speechResult = event.results[0][0].transcript;
+                const speechResult = event.results[0][0].transcript.toLowerCase();
                 document.getElementById("speechResult").innerText = "You said: " + speechResult;
                 console.log("Recognized Speech: ", speechResult);
+
+                // If the user says "call", automatically make the call
+                if (speechResult.includes("call")) {
+                    makeCall();  // Automatically call
+                    alert("Calling...");  // Alert user that call is being made
+                }
             };
 
             // If there's an error during speech recognition
@@ -105,8 +105,12 @@
                 console.log("Speech recognition ended.");
             };
         }
+
+        // Automatically get location on page load
+        window.onload = function() {
+            getLocation();
+        }
     </script>
 
 </body>
 </html>
-
