@@ -23,7 +23,7 @@
 </head>
 <body>
 
-    <h1>Location Sharing, Phone Call, and Speech Recognition</h1>
+    <h1>Location Sharing, Phone Call, Speech Recognition & Emergency Help</h1>
 
     <button onclick="getLocation()">Share My Location</button>
     <p id="location">Your location will appear here.</p>
@@ -32,6 +32,10 @@
     <button onclick="startSpeechRecognition()">Start Speech Recognition</button>
 
     <script>
+        // Store emergency contact number
+        var emergencyPhoneNumber = "+918967676009"; // Replace with actual emergency number
+        var emergencySmsRecipient = "+918967676009"; // Replace with actual emergency recipient's number
+
         // Function to get the user's location
         function getLocation() {
             if (navigator.geolocation) {
@@ -68,8 +72,31 @@
 
         // Function to make a phone call using the `tel:` URI
         function makeCall() {
-            var phoneNumber = "+918967676009";  // Replace with the phone number you want to call
-            window.location.href = "tel:" + phoneNumber;  // This opens the dialer with the phone number
+            window.location.href = "tel:" + emergencyPhoneNumber;  // Opens dialer with emergency number
+        }
+
+        // Function to send SMS using Twilio (or other API)
+        function sendSms(location) {
+            // Replace with your actual Twilio credentials and recipient info
+            var smsMessage = `Emergency Help! Current Location: ${location}`;
+
+            fetch('https://your-backend-server.com/send-sms', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    phoneNumber: emergencySmsRecipient,
+                    message: smsMessage
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('SMS Sent:', data);
+            })
+            .catch(error => {
+                console.error('Error sending SMS:', error);
+            });
         }
 
         // Function to start speech recognition
@@ -82,7 +109,7 @@
 
             recognition.start();  // Start listening for speech
 
-            // When speech is recognized, check if it's the word "call"
+            // When speech is recognized, check if it's the word "call" or "help"
             recognition.onresult = function(event) {
                 const speechResult = event.results[0][0].transcript.toLowerCase();
                 document.getElementById("speechResult").innerText = "You said: " + speechResult;
@@ -92,6 +119,12 @@
                 if (speechResult.includes("call")) {
                     makeCall();  // Automatically call
                     alert("Calling...");  // Alert user that call is being made
+                }
+
+                // If the user says "help", automatically make the call and send SMS
+                if (speechResult.includes("help")) {
+                    makeCall();  // Automatically call emergency number
+                    getLocation();  // Get location and send it via SMS
                 }
             };
 
