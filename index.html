@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Location Sharing and Calling</title>
+    <title>Location Sharing, Call, and Speech Recognition</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,16 +14,24 @@
             margin-top: 20px;
             font-size: 18px;
         }
+        #speechResult {
+            margin-top: 20px;
+            font-size: 18px;
+            color: blue;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Location Sharing and Phone Call</h1>
+    <h1>Location Sharing, Phone Call, and Speech Recognition</h1>
 
     <button onclick="getLocation()">Share My Location</button>
     <p id="location">Your location will appear here.</p>
     
     <button onclick="makeCall()">Make a Call</button>
+
+    <p id="speechResult">Speech will appear here...</p>
+    <button onclick="startSpeechRecognition()">Start Speech Recognition</button>
 
     <script>
         // Function to get the user's location
@@ -62,8 +70,36 @@
 
         // Function to make a phone call using the `tel:` URI
         function makeCall() {
-            var phoneNumber = "+917872286993";  // Replace with the phone number you want to call
+            var phoneNumber = "+1234567890";  // Replace with the phone number you want to call
             window.location.href = "tel:" + phoneNumber;  // This opens the dialer with the phone number
+        }
+
+        // Function to start speech recognition
+        function startSpeechRecognition() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+
+            recognition.lang = 'en-US';  // Set the language to English
+            recognition.interimResults = false;  // Set to true if you want partial results
+            recognition.maxAlternatives = 1;  // Limit the number of alternative results
+
+            recognition.start();  // Start listening for speech
+
+            // When speech is recognized, display the result
+            recognition.onresult = function(event) {
+                const speechResult = event.results[0][0].transcript;
+                document.getElementById("speechResult").innerText = "You said: " + speechResult;
+                console.log("Recognized Speech: ", speechResult);
+            };
+
+            // If there's an error during speech recognition
+            recognition.onerror = function(event) {
+                document.getElementById("speechResult").innerText = "Error occurred in speech recognition: " + event.error;
+            };
+
+            // When speech recognition ends
+            recognition.onend = function() {
+                console.log("Speech recognition ended.");
+            };
         }
     </script>
 
