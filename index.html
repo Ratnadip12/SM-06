@@ -18,9 +18,8 @@
   let server;
   let service;
   let characteristic;
-  let reader;
 
-  // Check if the Web Bluetooth API is supported
+  // Check if Web Bluetooth API is supported
   if ('bluetooth' in navigator) {
     console.log("Web Bluetooth API is supported!");
   } else {
@@ -30,19 +29,22 @@
   // Handle the connect button click
   document.getElementById('connectButton').addEventListener('click', async () => {
     try {
-      // Request Bluetooth device (e.g., HC-05)
+      // Request Bluetooth device with Serial Port Profile (SPP) or BLE
       bluetoothDevice = await navigator.bluetooth.requestDevice({
-        filters: [{ services: ['battery_service'] }] // You can add specific UUIDs for your service
+        filters: [
+          { name: 'HC-05' },  // Specific Bluetooth device name (modify this if needed)
+          { services: ['battery_service', 'serial_port_profile'] }  // Modify for specific Bluetooth services
+        ]
       });
 
       // Connect to the device and get the GATT server
       server = await bluetoothDevice.gatt.connect();
 
-      // Get a Bluetooth service (replace with actual service UUID if needed)
-      service = await server.getPrimaryService('battery_service'); // Example service
+      // Get a Bluetooth service (example: Battery Service, replace with actual UUIDs)
+      service = await server.getPrimaryService('battery_service'); // Modify as needed
 
-      // Get a Bluetooth characteristic (replace with actual characteristic UUID if needed)
-      characteristic = await service.getCharacteristic('battery_level'); // Example characteristic
+      // Get a Bluetooth characteristic (modify for your Bluetooth module)
+      characteristic = await service.getCharacteristic('battery_level'); // Modify as needed
 
       document.getElementById('status').textContent = "Connected to Bluetooth Device";
 
@@ -59,8 +61,8 @@
     try {
       const value = await characteristic.readValue();
       console.log('Received Bluetooth data: ', value);
-      
-      // Decode the received value and display the pulse rate
+
+      // Decode the received value and display the pulse rate (or any other data)
       const pulseRate = new TextDecoder().decode(value).trim();
       document.getElementById('pulseRate').textContent = pulseRate;
     } catch (error) {
