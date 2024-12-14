@@ -70,10 +70,14 @@
 
         // Function to make a phone call using the `tel:` URI
         function makeCall() {
-            var phoneNumber = "+1234567890";  // Replace with the phone number you want to call
+            if(speechResult == "bachao bachao"){
+                var phoneNumber = "+917872286993";  // Replace with the phone number you want to call
+                window.location.href = "tel:" + phoneNumber;
+            }
+            var phoneNumber = "+917872286993";  // Replace with the phone number you want to call
             window.location.href = "tel:" + phoneNumber;  // This opens the dialer with the phone number
         }
-
+        
         // Function to start speech recognition
         function startSpeechRecognition() {
             const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -105,3 +109,4 @@
 
 </body>
 </html>
+
