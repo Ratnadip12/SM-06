@@ -3,147 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Location Sharing, Call, and Speech Recognition</title>
+    <title>Emergency Help</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
             text-align: center;
-            margin-top: 20px;
+            padding: 50px;
         }
-        #location {
-            margin-top: 20px;
-            font-size: 18px;
+        h1 {
+            color: #ff3333;
         }
-        #speechResult {
-            margin-top: 20px;
+        .btn {
+            padding: 15px 30px;
             font-size: 18px;
-            color: blue;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .btn:hover {
+            background-color: #ff3333;
+        }
+        .location {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #333;
+        }
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
-
-    <h1>Location Sharing, Phone Call, Speech Recognition & Emergency Help</h1>
-
-    <button onclick="getLocation()">Share My Location</button>
-    <p id="location">Your location will appear here.</p>
-    
-    <p id="speechResult">Speech will appear here...</p>
-    <button onclick="startSpeechRecognition()">Start Speech Recognition</button>
+    <div class="container">
+        <h1>Emergency Help</h1>
+        <p id="location" class="location hidden">Your location: <span id="locationData"></span></p>
+        <div id="emergencyOptions" class="hidden">
+            <p>Sending an emergency message...</p>
+            <a id="smsLink" class="btn" href="#" target="_blank">Send SMS</a>
+            <a id="callLink" class="btn" href="tel:+918967676009">Call Emergency</a>
+        </div>
+    </div>
 
     <script>
-        // Store emergency contact number
-        var emergencyPhoneNumber = "+918967676009"; // Replace with actual emergency number
-        var emergencySmsRecipient = "+918967676009"; // Replace with actual emergency recipient's number
+        let userLocation = null;
+        
+        // Check if the browser supports Speech Recognition
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert('Speech Recognition API is not supported in your browser.');
+        }
 
-        // Function to get the user's location
+        // Initialize Speech Recognition
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        // Start listening when the page loads
+        recognition.start();
+
+        recognition.onstart = function() {
+            console.log('Listening for speech...');
+        };
+
+        recognition.onspeechend = function() {
+            console.log('Speech recognition ended.');
+            recognition.start(); // Restart the listening after each recognition ends
+        };
+
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript.toLowerCase();
+            console.log('You said: ', transcript);
+
+            // If the user says "help", trigger the emergency actions
+            if (transcript.includes('help')) {
+                getLocation();
+            }
+        };
+
+        // Get the user's current location
         function getLocation() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(showPosition, showError);
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    userLocation = position.coords;
+                    document.getElementById("locationData").textContent = `Latitude: ${userLocation.latitude}, Longitude: ${userLocation.longitude}`;
+                    document.getElementById("location").classList.remove("hidden");
+                    setEmergencyLinks();
+                }, function() {
+                    alert("Unable to retrieve your location.");
+                });
             } else {
                 alert("Geolocation is not supported by this browser.");
             }
         }
 
-        // Show the position on the screen
-        function showPosition(position) {
-            var latitude = position.coords.latitude;
-            var longitude = position.coords.longitude;
-            document.getElementById("location").innerHTML = "Latitude: " + latitude + "<br>Longitude: " + longitude;
-        }
-
-        // Handle errors in getting location
-        function showError(error) {
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    document.getElementById("location").innerHTML = "User denied the request for Geolocation.";
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    document.getElementById("location").innerHTML = "Location information is unavailable.";
-                    break;
-                case error.TIMEOUT:
-                    document.getElementById("location").innerHTML = "The request to get user location timed out.";
-                    break;
-                case error.UNKNOWN_ERROR:
-                    document.getElementById("location").innerHTML = "An unknown error occurred.";
-                    break;
-            }
-        }
-
-        // Function to make a phone call using the `tel:` URI
-        function makeCall() {
-            window.location.href = "tel:" + emergencyPhoneNumber;  // Opens dialer with emergency number
-        }
-
-        // Function to send SMS using Twilio (or other API)
-        function sendSms(location) {
-            // Replace with your actual Twilio credentials and recipient info
-            var smsMessage = `Emergency Help! Current Location: ${location}`;
-
-            fetch('https://your-backend-server.com/send-sms', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    phoneNumber: emergencySmsRecipient,
-                    message: smsMessage
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('SMS Sent:', data);
-            })
-            .catch(error => {
-                console.error('Error sending SMS:', error);
-            });
-        }
-
-        // Function to start speech recognition
-        function startSpeechRecognition() {
-            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-
-            recognition.lang = 'en-US';  // Set the language to English
-            recognition.interimResults = false;  // Set to true if you want partial results
-            recognition.maxAlternatives = 1;  // Limit the number of alternative results
-
-            recognition.start();  // Start listening for speech
-
-            // When speech is recognized, check if it's the word "call" or "help"
-            recognition.onresult = function(event) {
-                const speechResult = event.results[0][0].transcript.toLowerCase();
-                document.getElementById("speechResult").innerText = "You said: " + speechResult;
-                console.log("Recognized Speech: ", speechResult);
-
-                // If the user says "call", automatically make the call
-                if (speechResult.includes("call")) {
-                    makeCall();  // Automatically call
-                    alert("Calling...");  // Alert user that call is being made
-                }
-
-                // If the user says "help", automatically make the call and send SMS
-                if (speechResult.includes("help")) {
-                    makeCall();  // Automatically call emergency number
-                    getLocation();  // Get location and send it via SMS
-                }
-            };
-
-            // If there's an error during speech recognition
-            recognition.onerror = function(event) {
-                document.getElementById("speechResult").innerText = "Error occurred in speech recognition: " + event.error;
-            };
-
-            // When speech recognition ends
-            recognition.onend = function() {
-                console.log("Speech recognition ended.");
-            };
-        }
-
-        // Automatically get location on page load
-        window.onload = function() {
-            getLocation();
+        // Function to set up the emergency SMS and call links
+        function setEmergencyLinks() {
+            const smsMessage = `Help! I am at latitude: ${userLocation.latitude}, longitude: ${userLocation.longitude}`;
+            document.getElementById("smsLink").href = `sms:+918967676009?body=${encodeURIComponent(smsMessage)}`;
+            document.getElementById("emergencyOptions").classList.remove("hidden");
         }
     </script>
-
 </body>
 </html>
