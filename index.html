@@ -3,109 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emergency Help</title>
+    <title>Phone Location-Based Call and SMS</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
             text-align: center;
-            padding: 50px;
+            padding: 20px;
         }
-        h1 {
-            color: #ff3333;
+        #map {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ccc;
         }
-        .location {
-            margin-top: 20px;
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
             font-size: 16px;
-            color: #333;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
         }
-        .hidden {
-            display: none;
+        button:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Emergency Help</h1>
-        <p id="location" class="location hidden">Your location: <span id="locationData"></span></p>
-        <div id="emergencyOptions" class="hidden">
-            <p>Sending an emergency message...</p>
-        </div>
+
+    <h1>Location-Based Call and SMS</h1>
+    <p>Click the button to get your current location:</p>
+    <button onclick="getLocation()">Get Location</button>
+    
+    <div id="locationDetails" style="display:none;">
+        <h3>Your Current Location:</h3>
+        <p id="coordinates"></p>
+        <div id="map"></div>
+        <button onclick="makeCall()">Make Call</button>
+        <button onclick="sendSMS()">Send SMS</button>
     </div>
 
     <script>
-        let userLocation = null;
+        let map;
+        let marker;
 
-        // Check if the browser supports Speech Recognition
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            alert('Speech Recognition API is not supported in your browser.');
-        }
-
-        // Initialize Speech Recognition
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'en-US';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        // Start listening when the page loads
-        recognition.start();
-
-        recognition.onstart = function() {
-            console.log('Listening for speech...');
-        };
-
-        recognition.onspeechend = function() {
-            console.log('Speech recognition ended.');
-            recognition.start(); // Restart the listening after each recognition ends
-        };
-
-        recognition.onresult = function(event) {
-            const transcript = event.results[0][0].transcript.toLowerCase();
-            console.log('You said: ', transcript);
-
-            // If the user says "help", trigger the emergency actions
-            if (transcript.includes('help')) {
-                getLocation();
-            }
-        };
-
-        // Get the user's current location
         function getLocation() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    userLocation = position.coords;
-                    document.getElementById("locationData").textContent = `Latitude: ${userLocation.latitude}, Longitude: ${userLocation.longitude}`;
-                    document.getElementById("location").classList.remove("hidden");
-                    setEmergencyLinks();
-                }, function() {
-                    alert("Unable to retrieve your location.");
-                });
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
             } else {
                 alert("Geolocation is not supported by this browser.");
             }
         }
 
-        // Function to set up the emergency SMS and call links
-        function setEmergencyLinks() {
-            const smsMessage = `Help! I am at latitude: ${userLocation.latitude}, longitude: ${userLocation.longitude}`;
+        function showPosition(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            document.getElementById("coordinates").innerHTML = `Latitude: ${lat}°, Longitude: ${lon}°`;
+            document.getElementById("locationDetails").style.display = "block";
             
-            // Pre-fill the SMS message
-            const smsLink = `sms:11234567890?body=${encodeURIComponent(smsMessage)}`;
-            const callLink = `tel:+11234567890`;
+            // Initialize map
+            initMap(lat, lon);
+        }
 
-            // Display SMS and Call link automatically
-            window.location.href = smsLink;  // Attempt to open SMS app
-            setTimeout(function() {
-                window.location.href = callLink;  // After a short delay, attempt to open the dialer
-            }, 2000);
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    alert("User denied the request for Geolocation.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert("Location information is unavailable.");
+                    break;
+                case error.TIMEOUT:
+                    alert("The request to get user location timed out.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    alert("An unknown error occurred.");
+                    break;
+            }
+        }
 
-            document.getElementById("emergencyOptions").classList.remove("hidden");
+        function initMap(lat, lon) {
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: lat, lng: lon },
+                zoom: 15
+            });
+
+            marker = new google.maps.Marker({
+                position: { lat: lat, lng: lon },
+                map: map,
+                title: "You are here"
+            });
+        }
+
+        function makeCall() {
+            const phoneNumber = "tel:+1234567890";  // Replace with your desired number
+            window.location.href = phoneNumber;  // This will prompt the device to dial the number
+        }
+
+        function sendSMS() {
+            const phoneNumber = "sms:+1234567890";  // Replace with your desired number
+            const message = `I am here: Latitude: ${document.getElementById("coordinates").innerText}`;
+            window.location.href = phoneNumber + "?body=" + encodeURIComponent(message);
         }
     </script>
+
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap" async defer></script>
 </body>
 </html>
