@@ -3,50 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phone Location-Based Call and SMS</title>
+    <title>Voice Activated Call and SMS</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
             padding: 20px;
+            text-align: center;
         }
-        #map {
-            width: 100%;
-            height: 300px;
-            border: 1px solid #ccc;
-        }
-        button {
-            margin-top: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
+        #status {
+            margin-top: 20px;
+            font-size: 18px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Location-Based Call and SMS</h1>
-    <p>Click the button to get your current location:</p>
-    <button onclick="getLocation()">Get Location</button>
-    
-    <div id="locationDetails" style="display:none;">
-        <h3>Your Current Location:</h3>
-        <p id="coordinates"></p>
-        <div id="map"></div>
-        <button onclick="makeCall()">Make Call</button>
-        <button onclick="sendSMS()">Send SMS</button>
-    </div>
+    <h1>Voice Activated Call and SMS</h1>
+    <p>Speak a command to make a call or send an SMS with your current location!</p>
+    <p id="status">Listening...</p>
 
     <script>
-        let map;
-        let marker;
+        // Initialize the Speech Recognition API (Web Speech API)
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'en-US';
+        recognition.continuous = true;  // Keep listening after one command
+        recognition.interimResults = true;  // Show results as you speak
 
+        // Start listening for voice commands
+        recognition.start();
+
+        // Function to get current location using the Geolocation API
         function getLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(showPosition, showError);
@@ -58,56 +44,67 @@
         function showPosition(position) {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
-            document.getElementById("coordinates").innerHTML = `Latitude: ${lat}°, Longitude: ${lon}°`;
-            document.getElementById("locationDetails").style.display = "block";
-            
-            // Initialize map
-            initMap(lat, lon);
+            return { lat, lon };
         }
 
         function showError(error) {
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    alert("User denied the request for Geolocation.");
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    alert("Location information is unavailable.");
-                    break;
-                case error.TIMEOUT:
-                    alert("The request to get user location timed out.");
-                    break;
-                case error.UNKNOWN_ERROR:
-                    alert("An unknown error occurred.");
-                    break;
+            console.error("Geolocation error:", error);
+        }
+
+        // Function to make a call using the 'tel:' URI
+        function makeCall(phoneNumber) {
+            const callUri = `tel:${phoneNumber}`;
+            window.location.href = callUri;
+        }
+
+        // Function to send an SMS using the 'sms:' URI
+        function sendSMS(phoneNumber, message) {
+            const smsUri = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
+            window.location.href = smsUri;
+        }
+
+        // Listening for speech input
+        recognition.onresult = (event) => {
+            let transcript = "";
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript;
             }
-        }
 
-        function initMap(lat, lon) {
-            map = new google.maps.Map(document.getElementById("map"), {
-                center: { lat: lat, lng: lon },
-                zoom: 15
-            });
+            // Show the recognized speech
+            document.getElementById("status").textContent = "You said: " + transcript;
 
-            marker = new google.maps.Marker({
-                position: { lat: lat, lng: lon },
-                map: map,
-                title: "You are here"
-            });
-        }
+            // Convert speech to lowercase and check for commands
+            const command = transcript.toLowerCase();
 
-        function makeCall() {
-            const phoneNumber = "tel:+1234567890";  // Replace with your desired number
-            window.location.href = phoneNumber;  // This will prompt the device to dial the number
-        }
+            // Get the current location
+            const location = getLocation();
 
-        function sendSMS() {
-            const phoneNumber = "sms:+1234567890";  // Replace with your desired number
-            const message = `I am here: Latitude: ${document.getElementById("coordinates").innerText}`;
-            window.location.href = phoneNumber + "?body=" + encodeURIComponent(message);
-        }
+            // Handle specific commands
+            if (command.includes("help")) {
+                const phoneNumber = "+1234567890";  // Replace with the desired phone number
+                makeCall(phoneNumber);
+                document.getElementById("status").textContent = "Calling...";
+            }
+
+            if (command.includes("help")) {
+                const phoneNumber = "+1234567890";  // Replace with the desired phone number
+                const message = `I need help. My current location is: Latitude: ${location.lat}°, Longitude: ${location.lon}°`;
+                sendSMS(phoneNumber, message);
+                document.getElementById("status").textContent = "Sending SMS...";
+            }
+        };
+
+        // Handle errors in speech recognition
+        recognition.onerror = (event) => {
+            console.error("Speech recognition error:", event.error);
+            document.getElementById("status").textContent = "Error in listening...";
+        };
+
+        // Restart recognition if stopped unexpectedly
+        recognition.onend = () => {
+            recognition.start();
+        };
     </script>
 
-    <!-- Google Maps API -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap" async defer></script>
 </body>
 </html>
