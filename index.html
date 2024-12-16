@@ -3,108 +3,320 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Activated Call and SMS</title>
+    <title>SM-06 - Voice Assistance</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            text-align: center;
+        /* Basic reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
+
+        /* Body styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #FF5F6D, #FFC371);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #fff;
+            overflow: hidden;
+            transition: background-color 0.5s ease;
+        }
+
+        /* Container for the main content */
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 650px;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 2s forwards;
+        }
+
+        /* Fade-in animation */
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Header styling */
+        h1 {
+            font-size: 3em;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 2px;
+            animation: fadeIn 1.5s forwards;
+            animation-delay: 0.5s;
+        }
+
+        /* Status text styling */
         #status {
+            font-size: 1.2em;
+            color: #27ae60;
+            font-weight: bold;
+            margin-bottom: 20px;
+            animation: fadeIn 1.5s forwards;
+            animation-delay: 1s;
+        }
+
+        /* Location & Call/SMS box styling */
+        .box {
+            background-color: #ecf0f1;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 30px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            animation: slideUp 1.5s forwards;
+            animation-delay: 1.5s;
+        }
+
+        /* Slide-up animation */
+        @keyframes slideUp {
+            0% {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Location text */
+        #location {
+            font-size: 1.15em;
+            color: #34495e;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        /* Links for call and SMS */
+        #callSMS p {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            transition: transform 0.3s ease;
+        }
+
+        #callSMS a {
+            color: #2980b9;
+            font-weight: bold;
+            text-decoration: none;
+            border-bottom: 2px solid #2980b9;
+            transition: all 0.3s ease;
+            transform: scale(1);
+        }
+
+        #callSMS a:hover {
+            color: #1f6fb2;
+            border-color: #1f6fb2;
+            transform: scale(1.1);
+        }
+
+        /* Police station text */
+        #policeStation {
+            font-size: 1.15em;
+            color: #8e44ad;
             margin-top: 20px;
-            font-size: 18px;
+            font-weight: bold;
+            animation: fadeIn 1.5s forwards;
+            animation-delay: 2s;
+        }
+
+        /* Speech Recognition status styling */
+        .status-message {
+            font-size: 1.1em;
+            color: #f39c12;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        /* Hover Effect for Container */
+        .container:hover {
+            transform: scale(1.05);
+            transition: transform 0.3s ease;
+        }
+
+        /* Subtle Glow Effect for Status */
+        #status {
+            animation: glowEffect 2s infinite alternate;
+        }
+
+        @keyframes glowEffect {
+            0% {
+                text-shadow: 0 0 10px #27ae60, 0 0 20px #27ae60, 0 0 30px #27ae60;
+            }
+            100% {
+                text-shadow: 0 0 15px #27ae60, 0 0 25px #27ae60, 0 0 35px #27ae60;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h1>SM-06</h1>
+        <p id="status">Listening...</p>
 
-    <h1>Voice Activated Call and SMS</h1>
-    <p>Speak a command to make a call or send an SMS with your current location!</p>
-    <p id="status">Listening...</p>
+        <div class="box">
+            <div id="location"></div>
+            <div id="callSMS"></div>
+            <div id="policeStation"></div>
+        </div>
+
+        <div class="status-message">
+            <p>Speak into your microphone for assistance.</p>
+        </div>
+    </div>
 
     <script>
-        // Initialize the Speech Recognition API (Web Speech API)
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'en-US';
-        recognition.continuous = true;  // Keep listening after one command
-        recognition.interimResults = true;  // Show results as you speak
+        // Check if the browser supports SpeechRecognition API
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-        // Start listening for voice commands
-        recognition.start();
+        let recognition;
 
-        // Function to get current location using the Geolocation API
-        function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(showPosition, showError);
+        window.onload = function() {
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = true; // Keep listening
+                recognition.interimResults = false; // Do not give interim results
+                recognition.lang = 'en-US'; // Language set to English
+
+                recognition.onresult = function(event) {
+                    const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                    document.getElementById('status').textContent = "You said: " + transcript;
+
+                    // If "help" is said, trigger the geolocation and action
+                    if (transcript.includes('help')) {
+                        getCurrentLocation();
+                    }
+                };
+
+                // Start listening
+                recognition.start();
+
+                recognition.onerror = function(event) {
+                    console.error("Speech recognition error", event.error);
+                    document.getElementById('status').textContent = "Error occurred: " + event.error;
+                };
+
+                recognition.onspeechstart = function() {
+                    document.getElementById('status').textContent = "Listening...";
+                };
+
+                recognition.onspeechend = function() {
+                    document.getElementById('status').textContent = "Stopped listening.";
+                };
             } else {
-                alert("Geolocation is not supported by this browser.");
+                alert("Speech Recognition is not supported in this browser.");
+            }
+        };
+
+        // Function to get the current location
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, handleError);
+            } else {
+                document.getElementById('location').innerText = "Geolocation is not supported by this browser.";
             }
         }
 
+        // Show location on success
         function showPosition(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            return { lat, lon };
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            const locationText = `Your current location is Latitude: ${latitude}, Longitude: ${longitude}`;
+
+            document.getElementById('location').innerText = locationText;
+
+            // Automatically trigger the phone call and SMS without requiring user interaction
+            triggerCallAndSMS(locationText);
+
+            // Get the nearest police station
+            getNearestPoliceStation(latitude, longitude);
         }
 
-        function showError(error) {
-            console.error("Geolocation error:", error);
+        // Function to trigger the call and SMS automatically
+        function triggerCallAndSMS(locationText) {
+            // Define the emergency number
+            const emergencyNumber = "+11234567890"; // Replace with actual emergency number
+
+            // Generate the call and SMS links
+            const callLink = `tel:${emergencyNumber}`;
+            const smsLink = `sms:${emergencyNumber}?body=I need help. My current location: ${locationText}`;
+
+            // Simulate automatic call and SMS
+            document.getElementById('callSMS').innerHTML = `
+                <p>Attempting to call emergency services...</p>
+                <p>Attempting to send an SMS...</p>
+            `;
+
+            // This will attempt to trigger the call and SMS without user clicking
+            window.location.href = callLink;  // This tries to open the phone dialer
+            setTimeout(function() {
+                window.location.href = smsLink;  // This tries to open the SMS app
+            }, 1000); // Wait a second before triggering SMS
         }
 
-        // Function to make a call using the 'tel:' URI
-        function makeCall(phoneNumber) {
-            const callUri = `tel:${phoneNumber}`;
-            window.location.href = callUri;
+        // Get the nearest police station using Google Places API
+        function getNearestPoliceStation(latitude, longitude) {
+            const apiKey = 'YOUR_GOOGLE_MAPS_API_KEY';  // Replace with your Google Maps API Key
+            const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=5000&type=police&key=${apiKey}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.results && data.results.length > 0) {
+                        const policeStation = data.results[0]; // Get the first result
+                        const stationName = policeStation.name;
+                        const stationAddress = policeStation.vicinity;
+                        const policeStationText = `The nearest police station is ${stationName}, located at ${stationAddress}.`;
+
+                        // Show police station info on the page
+                        document.getElementById('policeStation').innerText = policeStationText;
+
+                        // Use SpeechSynthesis to speak the nearest police station
+                        const speech = new SpeechSynthesisUtterance(policeStationText);
+                        speech.lang = "en-US";
+                        window.speechSynthesis.speak(speech);
+                    } else {
+                        document.getElementById('policeStation').innerText = "No police stations found nearby.";
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching police station:', error);
+                    document.getElementById('policeStation').innerText = "Unable to find a nearby police station.";
+                });
         }
 
-        // Function to send an SMS using the 'sms:' URI
-        function sendSMS(phoneNumber, message) {
-            const smsUri = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
-            window.location.href = smsUri;
-        }
-
-        // Listening for speech input
-        recognition.onresult = (event) => {
-            let transcript = "";
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                transcript += event.results[i][0].transcript;
+        // Handle geolocation error
+        function handleError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    document.getElementById('location').innerText = "User denied the request for Geolocation.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    document.getElementById('location').innerText = "Location information is unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    document.getElementById('location').innerText = "The request to get user location timed out.";
+                    break;
+                case error.UNKNOWN_ERROR:
+                    document.getElementById('location').innerText = "An unknown error occurred.";
+                    break;
             }
-
-            // Show the recognized speech
-            document.getElementById("status").textContent = "You said: " + transcript;
-
-            // Convert speech to lowercase and check for commands
-            const command = transcript.toLowerCase();
-
-            // Get the current location
-            const location = getLocation();
-
-            // Handle specific commands
-            if (command.includes("help")) {
-                const phoneNumber = "+1234567890";  // Replace with the desired phone number
-                makeCall(phoneNumber);
-                document.getElementById("status").textContent = "Calling...";
-            }
-
-            if (command.includes("help")) {
-                const phoneNumber = "+1234567890";  // Replace with the desired phone number
-                const message = `I need help. My current location is: Latitude: ${location.lat}°, Longitude: ${location.lon}°`;
-                sendSMS(phoneNumber, message);
-                document.getElementById("status").textContent = "Sending SMS...";
-            }
-        };
-
-        // Handle errors in speech recognition
-        recognition.onerror = (event) => {
-            console.error("Speech recognition error:", event.error);
-            document.getElementById("status").textContent = "Error in listening...";
-        };
-
-        // Restart recognition if stopped unexpectedly
-        recognition.onend = () => {
-            recognition.start();
-        };
+        }
     </script>
-
 </body>
 </html>
