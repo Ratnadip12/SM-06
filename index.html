@@ -236,7 +236,7 @@
         function showPosition(position) {
             const latitude = position.coords.latitude;
             const longitude = position.coords.longitude;
-            const locationText = `Your current location is Latitude: ${latitude}, Longitude: ${longitude}`;
+            const locationText = `https://www.google.com/maps?q=${latitude},${longitude};
 
             document.getElementById('location').innerText = locationText;
 
@@ -250,7 +250,7 @@
         // Function to trigger the call and SMS automatically
         function triggerCallAndSMS(locationText) {
             // Define the emergency number
-            const emergencyNumber = "+11234567890"; // Replace with actual emergency number
+            const emergencyNumber = "+917047475826"; // Replace with actual emergency number
 
             // Generate the call and SMS links
             const callLink = `tel:${emergencyNumber}`;
@@ -272,7 +272,7 @@
         // Get the nearest police station using Google Places API
         function getNearestPoliceStation(latitude, longitude) {
             const apiKey = 'YOUR_GOOGLE_MAPS_API_KEY';  // Replace with your Google Maps API Key
-            const url = `https://maps.app.goo.gl/Ui7XFecgbpTfhAbe7`;
+            const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=5000&type=police&key=${apiKey}`;
 
             fetch(url)
                 .then(response => response.json())
