@@ -33,7 +33,7 @@
         const alertSound = new Audio('alarm.mp3');
 
         function enableSound() {
-            alertSound.play().catch(() => console.log("Autoplay blocked, sound will play on next alert."));
+            alertSound.play();
         }
 
         function showNotification(message) {
