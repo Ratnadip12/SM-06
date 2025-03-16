@@ -3,60 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Realtime Database Example</title>
-    <!-- Firebase SDKs -->
+    <title>Emergency Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
     <script type="module">
-        // Import the necessary Firebase functions from the Firebase modular SDK
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
 
-        // Your Firebase config
         const firebaseConfig = {
-            apiKey: "AIzaSyAJqGvlFsEaxdrmNwhVVDHHKg2qzKlzRk0",
-            authDomain: "testing-b0c22.firebaseapp.com",
-            databaseURL: "https://testing-b0c22-default-rtdb.firebaseio.com",
-            projectId: "testing-b0c22",
-            storageBucket: "testing-b0c22.firebasestorage.app",
-            messagingSenderId: "909391785509",
-            appId: "1:909391785509:web:384bb34761cfa64e9819cc",
-            measurementId: "G-1TC6KP7KMC"
+            apiKey: "AIzaSyDsFmLjKR7rWTPronNdXaJeXHENoXIuXxQ",
+            authDomain: "accidentation.firebaseapp.com",
+            databaseURL: "https://accidentation-default-rtdb.firebaseio.com",
+            projectId: "accidentation",
+            storageBucket: "accidentation.firebasestorage.app",
+            messagingSenderId: "359634708419",
+            appId: "1:359634708419:web:18bbe8ca680495796dbf76",
+            measurementId: "G-PEGW9YENPD"
         };
-
-        // Initialize Firebase
+        
         const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-        // Get a reference to the database
-        const database = getDatabase(app);
+        const map = L.map('map').setView([20, 78], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
-        // Reference to the data in your Realtime Database (Example path: 'users')
-        const dataRef = ref(database, 'users');
+        let accidentMarkers = {};
+        const alertSound = new Audio('https://www.soundjay.com/button/beep-07.wav');
 
-        // Fetch data from Firebase Realtime Database (only once)
-        get(dataRef).then((snapshot) => {
-            console.log("Snapshot fetched:", snapshot);
+        function enableSound() {
+            alertSound.play().catch(() => console.log("Autoplay blocked, sound will play on next alert."));
+        }
 
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                console.log("Fetched data:", data);
+        function showNotification(message) {
+            alertSound.play();
+            const notification = document.createElement("div");
+            notification.className = "notification";
+            notification.innerText = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
 
-                // Display the fetched data
-                document.getElementById("data").innerHTML = JSON.stringify(data, null, 2);
-            } else {
-                // No data available
-                console.log("No data available.");
-                document.getElementById("data").innerHTML = "No data available";
+        function addOrUpdateAccident(id, data) {
+            if (!data || !data.latitude || !data.longitude) return;
+
+            const { latitude, longitude, speed, impactForce, timestamp } = data;
+            const popupContent = `<b>Speed:</b> ${speed} km/h<br><b>Impact:</b> ${impactForce}G<br><b>Time:</b> ${new Date(timestamp * 1000).toLocaleString()}`;
+            
+            const severity = impactForce > 4 ? 'high' : 'low';
+            if (selectedSeverity !== 'all' && severity !== selectedSeverity) return;
+
+            if (!accidentMarkers[id]) {
+                showNotification(`🚨 New Accident Reported! Impact: ${impactForce}G at Speed: ${speed} km/h`);
             }
-        }).catch((error) => {
-            console.error("Error getting data:", error);
-            document.getElementById("data").innerHTML = "Error fetching data.";
+
+            if (accidentMarkers[id]) {
+                accidentMarkers[id].setLatLng([latitude, longitude]).bindPopup(popupContent);
+            } else {
+                const icon = L.icon({
+                    iconUrl: impactForce > 4 ? 'https://maps.google.com/mapfiles/ms/icons/red-dot.png' : 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
+                    iconSize: [32, 32]
+                });
+                accidentMarkers[id] = L.marker([latitude, longitude], { icon }).addTo(map).bindPopup(popupContent);
+            }
+        }
+
+        let selectedSeverity = 'all';
+
+        function filterBySeverity() {
+            selectedSeverity = document.getElementById("severityFilter").value;
+            Object.values(accidentMarkers).forEach(marker => map.removeLayer(marker));
+            accidentMarkers = {};
+            onValue(ref(db, 'Accidents'), (snapshot) => {
+                const accidents = snapshot.val();
+                if (accidents) {
+                    Object.keys(accidents).forEach(id => addOrUpdateAccident(id, accidents[id]));
+                }
+            });
+        }
+
+        const accidentsRef = ref(db, 'Accidents');
+        onValue(accidentsRef, (snapshot) => {
+            const accidents = snapshot.val();
+            if (accidents) {
+                Object.keys(accidents).forEach(id => addOrUpdateAccident(id, accidents[id]));
+            }
         });
     </script>
+    <style>
+        body {
+            background-color: #121212;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #map { height: 80vh; }
+        #controls { padding: 10px; }
+        input, select, button {
+            margin: 5px;
+            padding: 5px;
+            background-color: #333;
+            color: white;
+            border: 1px solid #444;
+        }
+        button:hover {
+            background-color: #555;
+        }
+        .notification {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: red;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+            box-shadow: 0px 0px 10px rgba(255, 0, 0, 0.5);
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
-    <h1>Firebase Realtime Database Example</h1>
-
-    <h3>Fetched Data:</h3>
-    <pre id="data">Loading...</pre>
-
+    <div id="controls">
+        <button onclick="enableSound()">Enable Sound</button>
+        <input type="text" id="searchBox" placeholder="Search location...">
+        <button onclick="searchLocation()">Search</button>
+        <select id="severityFilter" onchange="filterBySeverity()">
+            <option value="all">All Accidents</option>
+            <option value="high">High Impact ( >4G )</option>
+            <option value="low">Low Impact ( ≤4G )</option>
+        </select>
+    </div>
+    <div id="map"></div>
 </body>
 </html>
